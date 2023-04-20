@@ -92,12 +92,10 @@ namespace ShoppingCartList
             [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "updateshoppingcartitem/{id}/{category}")] HttpRequest req,
             ILogger log, string id,string category)
         {
-            log.LogInformation($"Updating Shopping Cart Item with ID: {id}");
-            await _db.updateitem();
+            
             string requestData = await new StreamReader(req.Body).ReadToEndAsync();
-
             var data = JsonConvert.DeserializeObject<UpdateShoppingCartItem>(requestData);
-            await _db.updateitem();
+            var item = await documentContainer.ReadItemAsync<ShoppingCartItem>(id, new Microsoft.Azure.Cosmos.PartitionKey(category));
 
             if (item.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -106,7 +104,7 @@ namespace ShoppingCartList
             }
 
             item.Resource.Collected = data.Collected;
-            await documentContainer.UpsertItemAsync(item.Resource);
+            await _db.updateitem();
             string updatemessage="Updated successfully";
             dynamic upmydata = new ExpandoObject();
             upmydata.message = updatemessage;

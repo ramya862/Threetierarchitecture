@@ -41,8 +41,9 @@ namespace cosmosdata
          }
          public static async Task<dynamic>updateitem(string id,string category)
          {
-            string requestData =await new StreamReader(req.Body).ReadToEndAsync();
-            return requestedData;
+            return await documentContainer.UpsertItemAsync(item.Resource);
+
+      
          }
          public static async Task<dynamic>Deleteitem(string id,string category)
          {
