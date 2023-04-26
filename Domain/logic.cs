@@ -10,6 +10,8 @@ using System.IO;
 using System.Threading.Tasks;
 using cosmosdata;
 using System.Net.Http;
+using System;
+
 namespace Domain.logic
 {
     public class Mylogic
@@ -21,18 +23,36 @@ namespace Domain.logic
         gmydata.Data=shp;
         return await dal.getallitems(req,gmydata);
     }
-    public static async Task<ObjectResult>GetitembyId(HttpRequestMessage req,ILogger log,string id,string category)
+    public static async Task<IActionResult> GetItemById(HttpRequestMessage req, ILogger log, string id, string category)
+{
+    if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(category))
     {
-                var itembyid= await dal.gettitembyid(id,category);
-                string getmessage="Retrived  an item successfully by Id";
-                dynamic gmydata = new ExpandoObject();
-                gmydata.message = getmessage;
-                gmydata.Data=itembyid.Resource;
-                string json = Newtonsoft.Json.JsonConvert.SerializeObject(gmydata);
-                return new OkObjectResult(json);
-
+        return new BadRequestObjectResult("Please provide an ID and category.");
     }
-    public static async Task<ObjectResult>Createitem(HttpRequest req,ILogger log,string id,string category)
+
+    try
+    {
+        var item = await dal.gettitembyid(id, category, log);
+        if (item == null)
+        {
+            return new NotFoundObjectResult($"Item with ID {id} and category {category} not found.");
+        }
+
+        string message = "Retrieved an item successfully by ID.";
+        dynamic mydata = new ExpandoObject();
+        mydata.message = message;
+        mydata.data = item;
+        string json = JsonConvert.SerializeObject(mydata);
+        return new OkObjectResult(json);
+    }
+    catch (Exception ex)
+    {
+        log.LogError(ex, "Error retrieving item by ID.");
+        return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+    }
+}
+
+       public static async Task<ObjectResult>Createitem(HttpRequest req,ILogger log,string id,string category)
     {
       log.LogInformation("Creating Shopping Cart Item");
             string requestData = await new StreamReader(req.Body).ReadToEndAsync();

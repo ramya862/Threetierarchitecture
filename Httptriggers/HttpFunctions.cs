@@ -19,14 +19,7 @@ namespace ShoppingCartLists
     {
         private const string DatabaseName = "ShoppingCartItems";
         private const string CollectionName = "Items";
-        private readonly CosmosClient _cosmosClient;
-        private Container documentContainer;
-       
-        public ShoppingCartApi(CosmosClient cosmosClient)
-        {
-            _cosmosClient = cosmosClient;
-            documentContainer = _cosmosClient.GetContainer("ShoppingCartItems", "Items");
-        }
+        
     [FunctionName("Getallshoppingcartitems")]
     public static async Task<IActionResult> GetallempsAsync(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "getallshoppingcartitems")] HttpRequestMessage req,
@@ -49,25 +42,29 @@ namespace ShoppingCartLists
     }
 
 
-    [FunctionName("GetShoppingCartItemById")]
-        public async Task<IActionResult> GetShoppingCartItemById(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "getshoppingcartitembyid/{id}/{category}")]
-             HttpRequestMessage req, ILogger log,string id,string category)
-                   
+[FunctionName("GetShoppingCartItemById")]
+public async Task<IActionResult> GetShoppingCartItemById(
+    [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "getshoppingcartitembyid/{id}/{category}")]
+    HttpRequestMessage req, ILogger log, string id, string category)
+{
+    try
+    {
+        if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(category))
         {
-            log.LogInformation($"Getting Shopping Cart Item with ID: {id}");
-            try
-            {
-                return await Mylogic.GetitembyId(req,log,id,category);
-            }
-            catch (CosmosException ex)
-            {
-                return new NotFoundObjectResult(ex.Message);
-            }
+            return new BadRequestObjectResult("Please provide both ID and category.");
         }
-        
 
-    [FunctionName("CreateShoppingCartItem")]
+        log.LogInformation($"Getting Shopping Cart Item with ID: {id} and category: {category}");
+
+        return await Mylogic.GetItemById(req, log, id, category);
+    }
+    catch (CosmosException ex)
+    {
+        return new NotFoundObjectResult(ex.Message);
+    }
+}
+
+[FunctionName("CreateShoppingCartItem")]
         public async Task<IActionResult> CreateShoppingCartItems(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "createshoppingcartitem")] HttpRequest req,
            ILogger log,string id,string category)

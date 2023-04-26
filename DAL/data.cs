@@ -9,6 +9,8 @@ using Newtonsoft.Json;
 using ShoppingCartList;
 using Microsoft.Azure.Cosmos;
 using ShoppingCartList.Models;
+using Microsoft.Extensions.Logging;
+using System.Net;
 
 namespace cosmosdata
 {
@@ -29,14 +31,28 @@ namespace cosmosdata
          {
            string json = Newtonsoft.Json.JsonConvert.SerializeObject(gmydata);
 
-           return gmydata;
+           return new OkObjectResult(gmydata);
          }
-         public static async Task<dynamic> gettitembyid(string id,string category)
-         {
-         
-                var item =await documentContainer.ReadItemAsync<ShoppingCartList.Models.ShoppingCartItem>(id, new Microsoft.Azure.Cosmos.PartitionKey(category));
-                return item;
-         }
+      public static async Task<ShoppingCartItem> gettitembyid(string id, string category, ILogger log)
+{
+    try
+    {
+        var itemResponse = await documentContainer.ReadItemAsync<ShoppingCartItem>(id, new PartitionKey(category));
+        return itemResponse.Resource;
+    }
+    catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+    {
+        log.LogInformation($"Item with ID {id} and category {category} not found.");
+        return null;
+    }
+    catch (Exception ex)
+    {
+        log.LogError(ex, "Error retrieving item by ID.");
+        throw;
+    }
+}
+
+
          public static async Task<dynamic> Createitem(object item,string id,string category)
          {
             await documentContainer.CreateItemAsync(item, new Microsoft.Azure.Cosmos.PartitionKey(category));
